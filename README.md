@@ -23,3 +23,15 @@ via an issue and I'll update this script to get it to work.
 ```
 sudo dnf install geoclue2-demos nodejs
 ```
+
+Usage
+-----
+
+Just run `./run.mjs`. 
+
+The script defaults to Toronto. To switch to
+Quebec:
+
+```
+./run.mjs --city quebec
+```

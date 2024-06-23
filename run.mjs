@@ -1,11 +1,32 @@
 #!/usr/bin/env node
-import { execSync, spawnSync } from "child_process";
+import { execSync, spawnSync } from 'child_process';
+import { parseArgs } from 'util';
+
+const branchIds = {
+  quebec: 2,
+  toronto: 3,
+};
+
+const { values } = parseArgs({
+  options: {
+    delay: {
+      type: 'string',
+      short: 'd',
+      default: '15',
+    },
+    city: {
+      type: 'string',
+      short: 'c',
+      default: 'toronto',
+    }
+  }
+});
 
 // In km
 const earthRadius = 6371;
 
 // In seconds
-const pause = 15;
+const pause = parseInt(values.delay);
 
 const distanceRadii = [
   10000,
@@ -31,8 +52,21 @@ let distanceRadius = distanceRadii[0];
 
 let notificationId, notifyResult;
 
+let branchId;
+if (values.city) {
+  if (branchIds[values.city]) {
+    branchId = branchIds[values.city];
+  } else {
+    throw new Error(`City ${values.vity} not yet supported! File a bug`);
+  }
+} else {
+  branchId = branchIds.toronto;
+}
+
 const location = getLocation();
 console.log('Current location: %s, %s', ...location);
+
+
 
 while(true) {
   const cars = await getCars(location);
@@ -92,7 +126,7 @@ while(true) {
 async function getCars(location) {
 
   const result = await retry(
-    async() => fetch('https://www.reservauto.net/WCF/LSI/LSIBookingServiceV3.svc/GetAvailableVehicles?BranchID=2&LanguageID=2')
+    async() => fetch(`https://www.reservauto.net/WCF/LSI/LSIBookingServiceV3.svc/GetAvailableVehicles?BranchID=${branchId}&LanguageID=2`)
   );
   const json = await result.json();
   return json.d.Vehicles.map( vehicle => ({
