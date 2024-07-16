@@ -3,6 +3,7 @@ import { execSync, spawnSync } from 'child_process';
 import { parseArgs } from 'util';
 
 const branchIds = {
+  montreal: 1,
   quebec: 2,
   toronto: 3,
 };
@@ -18,7 +19,11 @@ const { values } = parseArgs({
       type: 'string',
       short: 'c',
       default: 'toronto',
-    }
+    },
+    location: {
+      type: 'string',
+      short: 'l',
+    },
   }
 });
 
@@ -52,18 +57,15 @@ let distanceRadius = distanceRadii[0];
 
 let notificationId, notifyResult;
 
-let branchId;
-if (values.city) {
-  if (branchIds[values.city]) {
-    branchId = branchIds[values.city];
-  } else {
-    throw new Error(`City ${values.vity} not yet supported! File a bug`);
-  }
-} else {
-  branchId = branchIds.toronto;
+if (!branchIds[values.city]) {
+  throw new Error(`City ${values.vity} not yet supported! File a bug`);
 }
+const branchId = branchIds[values.city];
 
-const location = getLocation();
+console.log('Using City Branch: %s. Branch ID: %i', values.city, branchId);
+
+
+const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : getLocation();
 console.log('Current location: %s, %s', ...location);
 
 
@@ -73,7 +75,9 @@ while(true) {
   const filteredCars = cars
     .filter(car => car.distance <= distanceRadius)
     .sort((a,b) => a.distance - b.distance);
-  
+
+  if (process.env.DEBUG) console.log(cars);
+
   console.log(
     '%i cars found. %i within %s. Waiting %i seconds',
     cars.length,
@@ -123,10 +127,20 @@ while(true) {
 
 }
 
+//https://www.reservauto.net/WCF/LSI/LSIBookingServiceV3.svc/GetAvailableVehicles?BranchID=2&LanguageID=2
+//https://www.reservauto.net/WCF/LSI/LSIBookingServiceV3.svc/GetAvailableVehicles?BranchID=2&LanguageID=2
+
+
 async function getCars(location) {
 
+  const url = `https://www.reservauto.net/WCF/LSI/LSIBookingServiceV3.svc/GetAvailableVehicles?BranchID=${branchId}&LanguageID=2`;
+
+  if (process.env.DEBUG) {
+    console.log('Url: %s', url);
+  }
+
   const result = await retry(
-    async() => fetch(`https://www.reservauto.net/WCF/LSI/LSIBookingServiceV3.svc/GetAvailableVehicles?BranchID=${branchId}&LanguageID=2`)
+    async() => fetch(url)
   );
   const json = await result.json();
   return json.d.Vehicles.map( vehicle => ({
