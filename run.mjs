@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execSync, spawnSync } from 'child_process';
 import { parseArgs } from 'util';
+import nodeGeocoder from 'node-geocoder';
 
 const branchIds = {
   montreal: 1,
@@ -54,7 +55,7 @@ const distanceRadii = [
   200,
 ];
 
-let distanceRadius = distanceRadii[0];
+let distanceRadius = distanceRadii[10];
 
 let notificationId, notifyResult;
 
@@ -65,11 +66,8 @@ const branchId = branchIds[values.city];
 
 console.log('Using City Branch: %s. Branch ID: %i', values.city, branchId);
 
-
-const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : getLocation();
+const location = await (values.location ? Promise.resolve(values.location.split(',').map(c => parseFloat(c.trim()))) : getLocation());
 console.log('Current location: %s, %s', ...location);
-
-
 
 while(true) {
   const cars = await getCars(location);
@@ -156,23 +154,36 @@ async function getCars(location) {
 
 }
 
-function getLocation() {
+async function getLocation() {
+  const options = {
+    provider: 'openstreetmap',
+    // Add the custom user agent string here
+    httpAdapter: 'https',
+    fetch: (url, options) => {
+      options.headers = {
+        ...options.headers,
+        'User-Agent': 'YourAppName/1.0 (your.email@example.com)'
+      };
+      return fetch(url, options);
+    }
+  };
 
-  console.log('Getting current location');
-  const result =
-    execSync('/usr/libexec/geoclue-2.0/demos/where-am-i -t 6')
-    .toString();
+  const geocoder = nodeGeocoder(options);
 
-  const obj = Object.fromEntries(
-    result.split('\n').map( line => line.split(':').map(k => k.trim()))
-  );
-  if (!obj['Latitude']) {
+  try {
+    const res = await geocoder.geocode('me');
+    if (res.length === 0) {
+      throw new Error('Could not determine current location');
+    }
+    const { latitude, longitude } = res[0];
+    console.log(`Location obtained: ${latitude}, ${longitude}`);
+    return [latitude, longitude];
+  } catch (error) {
+    console.error('Error getting location:', error.message);
     throw new Error('Could not determine current location');
   }
-
-  return [obj['Latitude'], obj['Longitude']].map(parseFloat);
-
 }
+
 
 function calculateDistance(lat1, lng1, lat2, lng2) {
 
