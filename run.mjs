@@ -6,6 +6,7 @@ const branchIds = {
   montreal: 1,
   quebec: 2,
   toronto: 3,
+  halifax: 4,
 };
 
 const { values } = parseArgs({
@@ -58,7 +59,7 @@ let distanceRadius = distanceRadii[0];
 let notificationId, notifyResult;
 
 if (!branchIds[values.city]) {
-  throw new Error(`City ${values.vity} not yet supported! File a bug`);
+  throw new Error(`City ${values.city} not yet supported! Supported cities are: montreal, quebec, toronto, halifax`);
 }
 const branchId = branchIds[values.city];
 
