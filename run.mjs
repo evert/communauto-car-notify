@@ -2,6 +2,10 @@
 import { execSync, spawnSync } from 'child_process';
 import { parseArgs } from 'util';
 import nodeGeocoder from 'node-geocoder';
+//import sendgrid from '@sendgrid/mail';
+import sgMail from '@sendgrid/mail';
+import env from 'dotenv';
+env.config();
 
 const branchIds = {
   montreal: 1,
@@ -15,7 +19,7 @@ const { values } = parseArgs({
     delay: {
       type: 'string',
       short: 'd',
-      default: '15',
+      default: '30',
     },
     city: {
       type: 'string',
@@ -84,6 +88,25 @@ while(true) {
     humanDistance(distanceRadius),
     pause,
   );
+
+  if (cars.length > 0) {
+sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+const msg = {
+  to: 'prannatj@gmail.com', // Change to your recipient
+  from: 'prannatj@gmail.com', // Change to your verified sender
+  subject: 'Car available',
+  text: 'Car available',
+  html: '<strong>and easy to do anywhere, even with Node.js</strong>',
+}
+sgMail
+  .send(msg)
+  .then(() => {
+    console.log('Email sent')
+  })
+  .catch((error) => {
+    console.error(error)
+  })
+  }
 
   if (filteredCars.length) {
 
