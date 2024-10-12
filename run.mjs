@@ -59,7 +59,7 @@ const distanceRadii = [
   200,
 ];
 
-let distanceRadius = distanceRadii[10];
+let distanceRadius = distanceRadii[12];
 
 let notificationId, notifyResult;
 
@@ -73,6 +73,8 @@ console.log('Using City Branch: %s. Branch ID: %i', values.city, branchId);
 const location = await (values.location ? Promise.resolve(values.location.split(',').map(c => parseFloat(c.trim()))) : getLocation());
 console.log('Current location: %s, %s', ...location);
 
+
+let prevCarCount = 0;
 while(true) {
   const cars = await getCars(location);
   const filteredCars = cars
@@ -89,10 +91,11 @@ while(true) {
     pause,
   );
 
-  if (cars.length > 0) {
+  if (filteredCars.length > 0) {
+    console.log('Car available');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 const msg = {
-  to: 'prannatj@gmail.com', // Change to your recipient
+  to: 'prannatj@dal.ca', // Change to your recipient
   from: 'prannatj@gmail.com', // Change to your verified sender
   subject: 'Car available',
   text: 'Car available',
@@ -107,6 +110,8 @@ sgMail
     console.error(error)
   })
   }
+
+  prevCarCount = cars.length;
 
   if (filteredCars.length) {
 
@@ -178,54 +183,32 @@ async function getCars(location) {
 }
 
 async function getLocation() {
-  const options = {
-    provider: 'openstreetmap',
-    // Add the custom user agent string here
-    httpAdapter: 'https',
-    fetch: (url, options) => {
-      options.headers = {
-        ...options.headers,
-        'User-Agent': 'YourAppName/1.0 (your.email@example.com)'
-      };
-      return fetch(url, options);
-    }
-  };
 
-  const geocoder = nodeGeocoder(options);
 
-  try {
-    const res = await geocoder.geocode('me');
-    if (res.length === 0) {
-      throw new Error('Could not determine current location');
-    }
-    const { latitude, longitude } = res[0];
-    console.log(`Location obtained: ${latitude}, ${longitude}`);
-    return [latitude, longitude];
-  } catch (error) {
-    console.error('Error getting location:', error.message);
-    throw new Error('Could not determine current location');
-  }
+      return [44.65335689999999, -63.600284384658266];
+
 }
 
 
 function calculateDistance(lat1, lng1, lat2, lng2) {
 
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lng2 - lng1);
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI / 180; // φ, λ in radians
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
 
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  const distance = earthRadius * c;
 
-  return distance*1000;
-}
+  console.log('Distance between %s, %s and %s, %s is %s meters', lat1, lng1, lat2, lng2, R * c);
+  return R * c; // Distance in meters
 
-function toRadians(degrees) {
-  return degrees * (Math.PI / 180);
+
+
 }
 
 function wait(ms) {
