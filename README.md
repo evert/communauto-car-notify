@@ -13,15 +13,17 @@ notification when it finds one.
 Installation
 ------------
 
-This script has been tested on Fedora Linux 39 and requires Node and
-`geoclue2-demos` to fetch the current latitude and longitude.
-If you are on any other system and it doesn't work, let me know
-via an issue and I'll update this script to get it to work.
+This script has been tested on Fedora Linux 39, Linux Linux Mint 22.2 and requires node > 17.5
 
 ## Fedora
 
 ```
 sudo dnf install geoclue2-demos nodejs
+```
+
+## Mint
+```
+sudo apt install nodejs
 ```
 
 Usage

@@ -90,8 +90,7 @@ const branchId = branchIds[values.city];
 console.log('Using City Branch: %s. Branch ID: %i', values.city, branchId);
 
 
-const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : await getLocation();
-console.log(location)
+const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : await retry(async () => await getLocation())
 console.log('Current location: %s, %s', ...location);
 
 
@@ -101,8 +100,6 @@ while(true) {
   const filteredCars = cars
     .filter(car => car.distance <= distanceRadius)
     .sort((a,b) => a.distance - b.distance);
-
-  if (process.env.DEBUG) console.log(cars);
 
   console.log(
     '%i cars found. %i within %s. Waiting %i seconds',
