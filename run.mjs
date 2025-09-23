@@ -65,7 +65,8 @@ const branchId = branchIds[values.city];
 console.log('Using City Branch: %s. Branch ID: %i', values.city, branchId);
 
 
-const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : getLocation();
+const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : await getLocation();
+console.log(location)
 console.log('Current location: %s, %s', ...location);
 
 
@@ -155,21 +156,20 @@ async function getCars(location) {
 
 }
 
-function getLocation() {
+async function getLocation() {
 
   console.log('Getting current location');
-  const result =
-    execSync('/usr/libexec/geoclue-2.0/demos/where-am-i -t 6')
-    .toString();
+  const ipRes = await fetch("https://api.ipify.org?format=json")
+  const { ip }= await ipRes.json();
+  
+  const locationRes = await fetch(`http://ip-api.com/json/${ip}`)
+  const {lat, lon }= await locationRes.json()
 
-  const obj = Object.fromEntries(
-    result.split('\n').map( line => line.split(':').map(k => k.trim()))
-  );
-  if (!obj['Latitude']) {
-    throw new Error('Could not determine current location');
+  if (!lat || !lon) {
+    throw new Error('Could not get location, try adding the location manaully with the --location arg') 
   }
 
-  return [obj['Latitude'], obj['Longitude']].map(parseFloat);
+  return [lat, lon]
 
 }
 
