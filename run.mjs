@@ -24,8 +24,33 @@ const { values } = parseArgs({
       type: 'string',
       short: 'l',
     },
-  }
+    help: {
+      type: "boolean",
+      short: "h",
+    },
+  },
 });
+
+if (values.help) {
+  console.log(`
+Usage: node run.mjs [options]
+
+Options:
+  -d, --delay <seconds>   Delay between requests (default: 15)
+  -c, --city <name>       City name (default: toronto). Supported cities: ${
+    Object.keys(branchIds).join(", ")
+  }
+  -l, --location <coord>  Location coordinates (e.g. "43.7,-79.4")
+  -h, --help              Show this help message
+
+Examples:
+  node run.mjs --delay 30 --city montreal
+  node run.mjs -d 10 -c vancouver
+  node run.mjs -l "45.5,-73.6"
+  node run.mjs --help
+`);
+  process.exit();
+}
 
 // In km
 const earthRadius = 6371;
@@ -141,7 +166,7 @@ async function getCars(location) {
   }
 
   const result = await retry(
-    async() => fetch(url)
+    async () => await fetch(url),
   );
   const json = await result.json();
   return json.d.Vehicles.map( vehicle => ({
