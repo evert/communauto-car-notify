@@ -112,7 +112,7 @@ while(true) {
     [notificationId, notifyResult] = res.stdout.toString().split('\n');
     switch(notifyResult) {
       case 'open':
-        spawnSync('xdg-open', ['https://ontario.client.reservauto.net/bookCar']);
+        spawnSync('xdg-open', [`https://${values.branchId === branchIds.toronto ? 'ontario' : 'quebec'}.client.reservauto.net/bookCar`]);
         break;
       case 'reduce' :
         distanceRadius = nextSmallerRadius;
