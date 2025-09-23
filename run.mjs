@@ -181,14 +181,30 @@ async function getCars(location) {
 async function getLocation() {
 
   console.log('Getting current location');
-  const ipRes = await fetch("https://api.ipify.org?format=json")
-  const { ip }= await ipRes.json();
-  
-  const locationRes = await fetch(`http://ip-api.com/json/${ip}`)
-  const {lat, lon }= await locationRes.json()
+  const result =
+    execSync('/usr/libexec/geoclue-2.0/demos/where-am-i -t 6')
+    .toString();
 
-  if (!lat || !lon) {
-    throw new Error('Could not get location, try adding the location manaully with the --location arg') 
+  const obj = Object.fromEntries(
+    result.split('\n').map( line => line.split(':').map(k => k.trim()))
+  );
+  let lat = obj['Latitude']
+  let lon = obj['Longitude']
+
+  if (!lat) {
+    const ipRes = await fetch("https://api.ipify.org?format=json")
+    const { ip }= await ipRes.json();
+    
+    const locationRes = await fetch(`http://ip-api.com/json/${ip}`)
+    const locationObj = await locationRes.json()
+    
+    lon = locationObj.lon;
+    lat = locationObj.lat;
+
+    if (lat && lon) {
+      return [lat, lon]
+    }
+    throw new Error('Could not get location, try adding the location manaully with the --location arg');
   }
 
   return [lat, lon]
