@@ -24,8 +24,33 @@ const { values } = parseArgs({
       type: 'string',
       short: 'l',
     },
-  }
+    help: {
+      type: "boolean",
+      short: "h",
+    },
+  },
 });
+
+if (values.help) {
+  console.log(`
+Usage: node run.mjs [options]
+
+Options:
+  -d, --delay <seconds>   Delay between requests (default: 15)
+  -c, --city <name>       City name (default: toronto). Supported cities: ${
+    Object.keys(branchIds).join(", ")
+  }
+  -l, --location <coord>  Location coordinates (e.g. "43.7,-79.4")
+  -h, --help              Show this help message
+
+Examples:
+  node run.mjs --delay 30 --city montreal
+  node run.mjs -d 10 -c vancouver
+  node run.mjs -l "45.5,-73.6"
+  node run.mjs --help
+`);
+  process.exit();
+}
 
 // In km
 const earthRadius = 6371;
@@ -65,7 +90,7 @@ const branchId = branchIds[values.city];
 console.log('Using City Branch: %s. Branch ID: %i', values.city, branchId);
 
 
-const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : getLocation();
+const location = values.location ? values.location.split(',').map(c => parseFloat(c.trim())) : await retry(async () => await getLocation())
 console.log('Current location: %s, %s', ...location);
 
 
@@ -75,8 +100,6 @@ while(true) {
   const filteredCars = cars
     .filter(car => car.distance <= distanceRadius)
     .sort((a,b) => a.distance - b.distance);
-
-  if (process.env.DEBUG) console.log(cars);
 
   console.log(
     '%i cars found. %i within %s. Waiting %i seconds',
@@ -112,7 +135,7 @@ while(true) {
     [notificationId, notifyResult] = res.stdout.toString().split('\n');
     switch(notifyResult) {
       case 'open':
-        spawnSync('xdg-open', ['https://ontario.client.reservauto.net/bookCar']);
+        spawnSync('xdg-open', [`https://${values.branchId === branchIds.toronto ? 'ontario' : 'quebec'}.client.reservauto.net/bookCar`]);
         break;
       case 'reduce' :
         distanceRadius = nextSmallerRadius;
@@ -140,7 +163,7 @@ async function getCars(location) {
   }
 
   const result = await retry(
-    async() => fetch(url)
+    async () => await fetch(url),
   );
   const json = await result.json();
   return json.d.Vehicles.map( vehicle => ({
@@ -155,7 +178,7 @@ async function getCars(location) {
 
 }
 
-function getLocation() {
+async function getLocation() {
 
   console.log('Getting current location');
   const result =
@@ -165,11 +188,26 @@ function getLocation() {
   const obj = Object.fromEntries(
     result.split('\n').map( line => line.split(':').map(k => k.trim()))
   );
-  if (!obj['Latitude']) {
-    throw new Error('Could not determine current location');
+  let lat = obj['Latitude']
+  let lon = obj['Longitude']
+
+  if (!lat) {
+    const ipRes = await fetch("https://api.ipify.org?format=json")
+    const { ip }= await ipRes.json();
+    
+    const locationRes = await fetch(`http://ip-api.com/json/${ip}`)
+    const locationObj = await locationRes.json()
+    
+    lon = locationObj.lon;
+    lat = locationObj.lat;
+
+    if (lat && lon) {
+      return [lat, lon]
+    }
+    throw new Error('Could not get location, try adding the location manaully with the --location arg');
   }
 
-  return [obj['Latitude'], obj['Longitude']].map(parseFloat);
+  return [lat, lon]
 
 }
 
